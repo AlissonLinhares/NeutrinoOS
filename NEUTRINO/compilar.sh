@@ -24,14 +24,20 @@
 # Parâmetro do bash que aborta o script se algum comando falhar (retornar != 0)
 set -e
 
+# Parâmetros de compilação
 FLAGS_GCC="-fno-exceptions -fno-stack-protector -fno-rtti -fpermissive -m32"
 OPTIONS_GCC="-I LIB/ -I LIB/UTIL -I LIB/GUI -I LIB/SYS -g -O2 -DNDEBUG"
 OPTIONS_LD="-melf_i386 -T LIB/link.ld BIN/crt0.O"
 
-OLD_DIR=$(pwd)
-DIR="$(dirname "$0")"
+# Salva o local do diretório atual
+OLD_DIR=$PWD
 
+# Entra no diretório de compilação
+DIR=$(dirname "$0")
 cd "$DIR"
+
+# Se a pasta BIN não existir, cria
+[ -e BIN ] || mkdir BIN
 
 echo "1. Compilando dependencias"
 echo " 1.1. Imagens"
@@ -40,27 +46,27 @@ nasm -f bin KERNEL/GUI/NIFS.ASM -o BIN/NIF.BIN
 echo " 1.2. CRT0"
 nasm -faout LIB/crt0.s -o BIN/crt0.O
 
+# Loop sobre todos os diretórios dentro de APPS, compilando quando acha main.cpp
 echo "2. Compilando programas"
-echo " 2.1. Terminal"
-g++ $OPTIONS_GCC -c APPS/CMD/main.cpp $FLAGS_GCC -o BIN/CMD.O
-ld $OPTIONS_LD BIN/CMD.O -o BIN/CMD.BIN
-#ndisasm BIN/CMD.BIN -b 32
+for app_dir in APPS/*; do
+    if [ -f "$app_dir"/main.cpp ]; then
+        app_name=$(basename "$app_dir")
 
-echo " 2.2. Desktop"
-g++ $OPTIONS_GCC -c APPS/DESKTOP/main.cpp $FLAGS_GCC -o BIN/DESKTOP.O
-ld $OPTIONS_LD BIN/DESKTOP.O -o BIN/DESKTOP.BIN
-#ndisasm BIN/DESKTOP.BIN -b 32
+        g++ $OPTIONS_GCC -c "$app_dir"/main.cpp $FLAGS_GCC -o BIN/"$app_name".O
+        ld $OPTIONS_LD BIN/"$app_name".O -o BIN/"$app_name".BIN
 
-echo " 2.3. Exemplos"
-g++ $OPTIONS_GCC -c APPS/DEMO/main.cpp $FLAGS_GCC -o BIN/DEMO.O
-ld $OPTIONS_LD BIN/DEMO.O -o BIN/DEMO.BIN
-#ndisasm BIN/DEMO.BIN -b 32
+        # Progresso
+        echo -n "."
+    fi
+done
+echo
 
 echo "3. Compilando kernel"
 nasm -f bin KERNEL/KERNEL.ASM -o BIN/KERNEL.BIN
 nasm -f bin KERNEL/LOADER.ASM -o BIN/LOADER.BIN
 
-rm BIN/*.ISO
+# Remove todos os arquivos ISO existentes
+rm BIN/*.ISO 2> /dev/null || true # hack para não abortar se comando falhar
 
 echo "4. Gerando imagem de disquete"
 nasm -f bin APPS/INSTALLER/MAIN.ASM -o BIN/INSTALLER.BIN
@@ -73,12 +79,15 @@ echo "6. Gerando live cd"
 nasm -f  bin KERNEL/LOADER.ASM -dBOOT_FROM=CD -o BIN/LOADER.BIN
 mkisofs -quiet -R -no-emul-boot -boot-load-size 1 -o BIN/LIVE.ISO -A NeutrinoOS -b LOADER.BIN BIN/
 
+# Remove arquivos temporários
 rm BIN/*.BIN
 rm BIN/*.O
 
-virtualbox --startvm NeutrinoOS
+# Inicia a máquina virtual
+#virtualbox --startvm NeutrinoOS
 
 echo "7. Fim"
 read -p "<Pressione qualquer tecla para continuar>"
 
-cd $OLD_DIR
+# Volta ao diretório que o usuário estava
+cd "$OLD_DIR"
