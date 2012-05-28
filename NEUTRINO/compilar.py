@@ -34,7 +34,8 @@ def execute(command):
     variaveis = globals()
     variaveis.update(locals())
 
-    os.system(right_sep(command).format(**variaveis))
+    if os.system(right_sep(command).format(**variaveis)) != 0:
+        sys.exit(1)
 
 def rm(arg):
     # Remove arquivos por padrão. Ex: *.txt
