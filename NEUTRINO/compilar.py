@@ -49,7 +49,8 @@ OPTIONS_LD = right_sep("-melf_i386 -T LIB/link.ld BIN/crt0.O")
 
 # Entra no diretório de compilação
 DIR = os.path.dirname(sys.argv[0])
-os.chdir(DIR)
+if DIR != "":
+    os.chdir(DIR)
 
 # Se a pasta BIN não existir, cria
 if not os.path.exists("BIN"):
