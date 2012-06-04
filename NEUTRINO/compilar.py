@@ -27,11 +27,23 @@ import glob
 import os
 import sys
 
+def usage():
+  print "Uso: %s [OPÇÃO]..." % sys.argv[0]
+  print "Script de compilação do Neutrino OS"
+  print "\nArgumentos:",
+  print """
+  -h --help         mostra esta ajuda e finaliza
+     --vbox         inicia o VirtualBox após a compilação com sucesso
+     --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
+                      o padrão é "NeutrinoOS". Essa opção só tem valor quando
+                      usada em conjunto com --vbox"""
+
 # Parse das opções de linha de comando
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "", ["vbox", "vmname="])
+    opts, args = getopt.getopt(sys.argv[1:], "h", ["help", "vbox", "vmname="])
 except getopt.GetoptError, err:
     print err
+    usage()
     sys.exit(2)
 
 start_vbox = False
@@ -41,6 +53,9 @@ for option, arg in opts:
         start_vbox = True
     elif option == "--vmname":
         vmname = arg
+    elif option in ("-h", "--help"):
+        usage()
+        sys.exit(0)
 
 # Funções úteis para o processo
 def right_sep(arg):
