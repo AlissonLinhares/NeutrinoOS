@@ -22,9 +22,25 @@
 #
 #-------------------------------------------------------------------------------
 
+import getopt
 import glob
 import os
 import sys
+
+# Parse das opções de linha de comando
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "", ["vbox", "vmname="])
+except getopt.GetoptError, err:
+    print err
+    sys.exit(2)
+
+start_vbox = False
+vmname = None
+for option, arg in opts:
+    if option == "--vbox":
+        start_vbox = True
+    elif option == "--vmname":
+        vmname = arg
 
 # Funções úteis para o processo
 def right_sep(arg):
@@ -100,7 +116,9 @@ rm("BIN/*.BIN")
 rm("BIN/*.O")
 
 # Inicia a máquina virtual
-#execute("virtualbox --startvm NeutrinoOS")
+if start_vbox:
+    vmname = vmname or "NeutrinoOS"
+    execute("virtualbox --startvm " + vmname)
 
 print "7. Fim"
 raw_input("<Pressione qualquer tecla para continuar>")
