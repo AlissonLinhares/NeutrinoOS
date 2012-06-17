@@ -92,7 +92,7 @@ namespace nlib {
 			return &button;
 		}
 		
-	private:		
+	private:
 		tButton button; /**< Registro compartilhado com o kernel. */
 	};
 }

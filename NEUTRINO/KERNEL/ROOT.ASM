@@ -57,7 +57,7 @@ ROOT_NODE_PTR EQU $ ;Ponteiro para o início do sistema de arquivos.
 ;@author: alisson_linhares@hotmail.com
 %macro end_node 0
 	;Calculando o tamanho do nó
-	TIMES 512 - ($ - %$begin_ptr) DB 0
+	TIMES STORAGE_PAGE_SIZE - ($ - %$begin_ptr) DB 0
 
 	%pop 
 %endmacro
@@ -70,7 +70,7 @@ ROOT_NODE_PTR EQU $ ;Ponteiro para o início do sistema de arquivos.
 %macro import_data 3
 	%2 EQU (1 + (%%ALING - $)/STORAGE_PAGE_SIZE)
 	%1 INCBIN %3
-	%%ALING TIMES 512 * %2 - ($ - %1) DB 0
+	%%ALING TIMES STORAGE_PAGE_SIZE * %2 - ($ - %1) DB 0
 %endmacro
 
 ;--------------------------------------------------------------------------------------------

@@ -75,7 +75,7 @@ inline void operator delete( void *buffer ) {
  * @param buffer Ponteiro para o buffer que será desalocado.
  */
 inline void operator delete[]( void *buffer ) { 
-	using namespace nlib;	
+	using namespace nlib;
 	SYS_MEMORY_FREE( buffer )
 }
 

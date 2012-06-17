@@ -25,12 +25,20 @@ JMP kernel_Main
 
 ;--------------------------------------------------------------------------------------------
 ;-----------------------------Área reservada para constantes---------------------------------
+;Constantes externas.
 DEBUG_MODE         EQU 2 ;Modo linha de comando com funções de debug.
 TEXT_MODE          EQU 1 ;Modo linha de comando.
 GRAPHICS_MODE      EQU 0 ;Modo gráfico.
 
-;Modo de funcionamento do sistema.
-OPERATION_MODE     EQU GRAPHICS_MODE
+;Configurando o modo de execução do sistema.
+%ifdef OPERATION_MODE ;Verifica se OPERATION_MODE foi definido na compilação -dOPERATION_MODE=DEBUG_MODE|TEXT_MODE|GRAPHICS_MODE
+	%if OPERATION_MODE > 2 || OPERATION_MODE < 0
+		%assign OPERATION_MODE GRAPHICS_MODE
+		%warning "O parâmetro OPERATION_MODE retornou um atributo inválido, portanto o sistema será compilado em GRAPHICS_MODE. Para mais informações, consulte o manual."
+	%endif
+%else
+	OPERATION_MODE EQU GRAPHICS_MODE
+%endif
 
 ;Controle de versão. A máxima versão suportada é "511.99" = 111111111.1100011b
 KERNEL_VERSION     EQU 3 ;0.03
@@ -73,7 +81,7 @@ kernel_Main:
 ;--------------------------Área reservada para dados do kernel-------------------------------
 kernel_Buffer    TIMES 4096 - bcp_size DB 0
 kernel_Stack     EQU $
-kernel_Alignment TIMES (NFS_ROOT_SECTOR_PTR - 1) * 512 - ($-$$) DB 0
+kernel_Alignment TIMES (NFS_ROOT_SECTOR_PTR - 1) * STORAGE_PAGE_SIZE - ($-$$) DB 0
 
 ;--------------------------------------------------------------------------------------------
 ;-----------------------------Diretório principal do sistema---------------------------------

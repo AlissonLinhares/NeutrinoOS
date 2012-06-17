@@ -77,7 +77,7 @@ ata:
 
 ;--------------------------------------------------------------------------------------------
 ;@description: Macro para escrever dados em um HD IDE.
-;@input: %1 << PAGE_ADDRESS, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << BUFFER, %5 << TOTAL_OF_BLOCKS
+;@input: %1 << setor lba, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << bufferPtr, %5 << Total de setores
 ;@output: ALL
 ;@author: alisson_linhares@hotmail.com
 %macro ata_Write 5
@@ -100,7 +100,7 @@ ata:
 
 ;--------------------------------------------------------------------------------------------
 ;@description: Macro para ler dados em um HD IDE.
-;@input: %1 << PAGE_ADDRESS, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << BUFFER, %5 << TOTAL_OF_BLOCKS
+;@input: %1 << setor lba, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << bufferPtr, %5 << Total de setores
 ;@output: ALL
 ;@author: alisson_linhares@hotmail.com
 %macro ata_Read 5
@@ -123,10 +123,10 @@ ata:
 
 ;--------------------------------------------------------------------------------------------
 ;@description: Macro para ler dados em um drive de CD/DVD IDE.
-;@input: %1 << PAGE_ADDRESS, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << BUFFER
+;@input: %1 << setor lba, %2 << ATA_0 || ATA_1, %3 << ATA_MASTER || ATA_SLAVE, %4 << bufferPtr, %5 << Total de setores
 ;@output: ALL
 ;@author: alisson_linhares@hotmail.com
-%macro atapi_Read 4
+%macro atapi_Read 5
 	MOV BP,%2
 	AND EBP,0FFFFh
 
@@ -139,10 +139,8 @@ ata:
 		MOV WORD [DS:EBP + tATAPIController.command  ],ATAPI_READ_DRIVE ;Limpando o reserved1 e inserindo o comando. 
 		MOV BYTE [DS:EBP + tATAPIController.control  ],1 ;Lendo 1 setor
 		MOV DWORD[DS:EBP + tATAPIController.address0 ],%1
-		ROR DWORD[DS:EBP + tATAPIController.address0 ],16;Convertendo para big endian 
-		ROR WORD [DS:EBP + tATAPIController.address0 ],8 ;
-		ROR WORD [DS:EBP + tATAPIController.address2 ],8 ;
 		MOV DWORD[DS:EBP + tATAPIController.buffer   ],%4
+		MOV DWORD[DS:EBP + tATAPIController.numberOfSectors],%5
 		CALL atapi_Execute
 
 		system_SemaphoreUnlock DS:EBP
@@ -337,62 +335,81 @@ ata_LBA28_RW:
 ;@output: ALL
 ;@author: alisson_linhares@hotmail.com
 atapi_Execute:
-	MOV DX,WORD[DS:EBP + tATAPIController.base]
-	OR DX,6
-	MOV AL,BYTE[DS:EBP + tATAPIController.drive]
-	OUT DX,AL ;Drive master ou slave para porta 1X6h
-	 
-	ADD DX,200h ;Porta 3X6h
-	IN AL,DX ;Sleep "Recomendado pelo OSDEV" 
-	IN AL,DX ; Procurar uma forma melhor de fazer isso!
-	IN AL,DX ;
-	IN AL,DX ;
-	
-	;Ativando modo PIO 
-	MOV DX,WORD[DS:EBP + tATAPIController.base]
-	INC DX ;1X1h
-	XOR AL,AL
-	OUT DX,AL ;Mandando 0 para porta 1X1h (1 == DMA / PIO  == 0)
+	MOV EDI,DWORD[DS:EBP + tATAPIController.buffer]
+	MOV EBX,DWORD[DS:EBP + tATAPIController.address0 ]
 
-	;Enviando a parte baixa de ATAPI_BLOCK_SIZE "Tamanho do bloco usado nos drives de CD e DVD" para a porta 1X4h 
-	ADD DX,3
-	MOV AL,ATAPI_BLOCK_SIZE & 0FFh ;Pegando os 8 primeiros bits 	
-	OUT DX,AL                    
-	
-	;Enviando a parte alta de ATAPI_BLOCK_SIZE para a porta 1X5h
-	INC DX
-	MOV AL,ATAPI_BLOCK_SIZE >> 8 ;Movendo 8bits para esquerda 	  
-	OUT DX,AL
-	
-	;Enviando o modo de operação para a porta 1X7h
-	ADD DX,2
-	MOV AL,0A0h ;Modo ATAPI
-	OUT DX,AL        
-	
-	CALL ata_IsReady ;Verifica se o drive está pronto, para receber os comandos scsi
-	JC .disk_Error
+	.readNextSector:
+		MOV EAX,EBX
+		ROR AX,8   ;Convertendo para big endian 
+		ROR EAX,16 ;
+		ROR AX,8   ;
+		MOV DWORD[DS:EBP + tATAPIController.address0],EAX
+
+		MOV DX,WORD[DS:EBP + tATAPIController.base]
+		OR DX,6
+		MOV AL,BYTE[DS:EBP + tATAPIController.drive]
+		OUT DX,AL ;Drive master ou slave para porta 1X6h
+		
+		ADD DX,200h ;Porta 3X6h
+		IN AL,DX ;Sleep "Recomendado pelo OSDEV" 
+		IN AL,DX ; Procurar uma forma melhor de fazer isso!
+		IN AL,DX ;
+		IN AL,DX ;
+		
+		;Ativando modo PIO 
+		MOV DX,WORD[DS:EBP + tATAPIController.base]
+		INC DX ;1X1h
+		XOR AL,AL
+		OUT DX,AL ;Mandando 0 para porta 1X1h (1 == DMA / PIO  == 0)
+
+		;Enviando a parte baixa de ATAPI_BLOCK_SIZE "Tamanho do bloco usado nos drives de CD e DVD" para a porta 1X4h 
+		ADD DX,3
+		MOV AL,ATAPI_BLOCK_SIZE & 0FFh ;Pegando os 8 primeiros bits 	
+		OUT DX,AL                    
+		
+		;Enviando a parte alta de ATAPI_BLOCK_SIZE para a porta 1X5h
+		INC DX
+		MOV AL,ATAPI_BLOCK_SIZE >> 8 ;Movendo 8bits para esquerda 	  
+		OUT DX,AL
+		
+		;Enviando o modo de operação para a porta 1X7h
+		ADD DX,2
+		MOV AL,0A0h ;Modo ATAPI
+		OUT DX,AL        
+
+		CALL ata_IsReady ;Verifica se o drive está pronto, para receber os comandos scsi
+		JC .disk_Error
+
 		CLD
 		MOV DX,WORD[DS:EBP + tATAPIController.base]
 		LEA ESI,[DS:EBP + tATAPIController.SCSIPack]
 		MOV ECX,6
 		REP OUTSW ;Movendo 12 bytes para porta 1X0h
 
-		CMP BYTE[DS:EBP + tATAPIController.command],ATAPI_EJECT_DRIVE ;Verifica se o comando é de eject
+		;Verifica se o comando é de eject
+		CMP BYTE[DS:EBP + tATAPIController.command],ATAPI_EJECT_DRIVE 
 		JE .done
-			OR DX,7 ;Porta 1X7h
-			CALL ata_IsReady ;Verifica se o drive está pronto, para enviar os dados
-			JC .disk_Error       
+		CMP BYTE[DS:EBP + tATAPIController.command],ATAPI_READ_DRIVE 
+		JNE .disk_Error
 
-			MOV ECX,ATAPI_BLOCK_SIZE / 2   
-			MOV DX ,WORD[DS:EBP + tATAPIController.base]
-			MOV EDI,DWORD[DS:EBP + tATAPIController.buffer]
-			REP INSW ;Carregando dados em EDI
-		.done:
-		RET
+		OR DX,7 ;Porta 1X7h
+		CALL ata_IsReady ;Verifica se o drive está pronto, para enviar os dados
+		JC .disk_Error       
+
+		MOV ECX,ATAPI_BLOCK_SIZE / 2
+		MOV DX ,WORD[DS:EBP + tATAPIController.base]
+		REP INSW ;Carregando dados em EDI
+		
+		INC EBX
+	DEC DWORD[DS:EBP + tATAController.numberOfSectors]
+	JNZ .readNextSector
+	RET
+
 	.disk_Error:
 		PUSH DWORD ATAPI_COMMAND_ERROR
 		CALL error_ThrowException ;Informando ao núcleo sobre o erro.
-	RET
+	.done:
+	RET 
 
 ;--------------------------------------------------------------------------------------------	
 ;@description: Tratador de interrupções para unidade master.

@@ -32,10 +32,14 @@
 %ifdef BOOT_FROM
 	%if BOOT_FROM == CD || BOOT_FROM == DVD
 		SECTOR_SIZE EQU 4
-		SECTOR_LBA EQU (0x12000 / 0x800) + 1
-	%elif BOOT_FROM == HD
+		SECTOR_LBA  EQU (0x12000 / 0x800) + 1
+	%else
+		%if BOOT_FROM != HD
+			%warning "O parâmetro BOOT_FROM retornou um atributo inválido, portanto o sistema usará a formatação padrão. Para mais informações, consulte o manual."
+		%endif
+
 		SECTOR_SIZE EQU 1
-		SECTOR_LBA EQU 1
+		SECTOR_LBA  EQU 1
 	%endif
 %else
 	SECTOR_SIZE EQU 1

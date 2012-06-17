@@ -267,7 +267,7 @@ nfs_CreateNode:
 	TEST EDI,EDI ;Termina se o nome for nulo
 	JZ .inputError
 	CALL nfs_OpenData
-	JC .inputError
+	JC .abort
 		;Salvando o valor que será retornado quando o procedimento terminar.
 		MOV DWORD[ESP + STACK_EBX],EDI
 
@@ -371,6 +371,10 @@ nfs_CreateNode:
 						MOV EBX,DWORD[DS:EBP + tFileController.dataPtr]
 						CALL storage_WriteSector ;Salvando novo registro em disco
 			JMP .done
+	.inputError:
+		PUSH NFS_INVALID_NAME
+		CALL error_ThrowException
+		JMP .abort
 	.eof_error:
 		PUSH DWORD NFS_EOF_ERROR
 		JMP .sendNotification
@@ -384,7 +388,7 @@ nfs_CreateNode:
 	.systemError:
 		MOV EDI,DWORD[ESP + STACK_EBX]
 		CALL memory_Free
-	.inputError:
+	.abort:
 		;Retornando o buffer nulo
 		MOV DWORD[ESP + STACK_EBX],0
 	.done:

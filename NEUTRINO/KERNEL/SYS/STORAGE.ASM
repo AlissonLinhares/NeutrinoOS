@@ -116,6 +116,34 @@ storage:
 		JZ %%done
 			storage_XCHGDisk 0,ESI ;Trocando as unidades.
 	%%done:
+
+;
+;	MOV ECX,2
+;	MOV EDX,tStorage_size
+;	MOV EBX,624
+;	XOR EAX,EAX
+;JMP .start
+;
+;	.loop:
+;		print_c BYTE[EDI]
+;		INC EDI
+;		INC EAX
+;		CMP EAX,512
+;		JBE .loop
+;
+;		XOR EAX,EAX
+;		pause
+;
+;		CMP EDI,kernel_Buffer + 4096
+;		JB .loop
+;.start:
+;		print_d EBX
+;		print_s ":"
+;		ADD EBX,2
+;
+;		MOV EDI,kernel_Buffer
+;		CALL storage_ReadSector
+;	JMP .loop
 %endmacro
 
 ;--------------------------------------------------------------------------------------------
@@ -288,7 +316,7 @@ storage_Identify:
 			MOV DWORD[EDX + storage.diskList + tStorage.size     ],EAX
 			MOV WORD [EDX + storage.diskList + tStorage.id       ],BX
 			ADD DWORD[storage.lastStorageIndex],tStorage_size
-			
+
 			;Carregando o setor de boot para memória
 			MOV ECX,1                ;Total de setores
 			XOR EBX,EBX              ;Setor
@@ -361,11 +389,11 @@ storage_ReadSector:
 			JMP .done
 		.patapi:
 			CALL storage_DetectAtaConfig
-			atapi_Read EBX,DX,AH,EDI ;PAGE_ADDRESS, ATA_0 || ATA_1, ATAPI_MASTER || ATAPI_SLAVE, EBX + tATA_LBA28.buffer
+			atapi_Read EBX,DX,AH,EDI,ECX
 			JMP .done
 		.pata:
 			CALL storage_DetectAtaConfig
-			ata_Read EBX,DX,AL,EDI,ECX ;PAGE_ADDRESS, ATA_0 || ATA_1, ATA_MASTER || ATA_SLAVE,tATA_LBA28.buffer,tATA_LBA28.totalOfBlocks
+			ata_Read EBX,DX,AL,EDI,ECX
 			JMP .done
 	.abort:
 		PUSH DWORD STORAGE_INVALID_ID

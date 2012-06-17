@@ -87,6 +87,8 @@ if DIR != "":
 if not os.path.exists("BIN"):
     os.mkdir("BIN")
 
+execute("clear");
+  
 print "1. Compilando dependencias"
 print " 1.1. Imagens"
 execute("nasm -f bin KERNEL/GUI/NIFS.ASM -o BIN/NIF.BIN")
@@ -109,7 +111,7 @@ for app_dir in os.listdir("APPS"):
 print
 
 print "3. Compilando kernel"
-execute("nasm -f bin KERNEL/KERNEL.ASM -o BIN/KERNEL.BIN")
+execute("nasm -f bin KERNEL/KERNEL.ASM -dOPERATION_MODE=GRAPHICS_MODE -o BIN/KERNEL.BIN")
 execute("nasm -f bin KERNEL/LOADER.ASM -o BIN/LOADER.BIN")
 
 # Remove todos os arquivos ISO existentes
@@ -136,4 +138,3 @@ if start_vbox:
     execute("virtualbox --startvm " + vmname)
 
 print "7. Fim"
-raw_input("<Pressione qualquer tecla para continuar>")

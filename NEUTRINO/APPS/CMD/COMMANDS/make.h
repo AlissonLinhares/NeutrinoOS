@@ -48,53 +48,51 @@ public:
 					help();
 				else
 					return INVALID_PARAMETER;
-			} else {
-				if( parameters->param->getName() == 0 ) {
-					char *auxPtr, *name, *path;
-					File f;
+			} else if( parameters->param->getName() == 0 ) {
+				char *auxPtr, *name, *path;
+				File f;
+				
+				do {
+					path = (char *) parameters->param->pop();
 					
-					do {
-						path = (char *) parameters->param->pop();
-						
-						//Procurando pela barra '\' antes do nome do nó.
-						for( auxPtr = path, name = 0; *auxPtr != 0; auxPtr++ )
-							if( *auxPtr == '\\' ) 
-								name = auxPtr;
-								
-						if( name != 0 )
-							*name++ = 0; //Marcando o final do path
+					//Procurando pela barra '\' antes do nome do nó.
+					for( auxPtr = path, name = 0; *auxPtr != 0; auxPtr++ )
+						if( *auxPtr == '\\' ) 
+							name = auxPtr;
+							
+					if( name != 0 )
+						*name++ = 0; //Marcando o final do path
 
-						//Criando um nó em disco.
-						if(f.make( path, name, size, type ))
-							return SYSTEM_ERROR;
-						
-					} while( !parameters->param->isEmpty() );
+					//Criando um nó em disco.
+					if(f.make( path, name, size, type ))
+						return SYSTEM_ERROR;
+
+				} while( !parameters->param->isEmpty() );
+				
+			} else if( parameters->param->length() == 1 ) {
+				int temp = Integer::parseInt( parameters->param->pop() );
 					
-				} else if( parameters->param->length() == 1 ) {
-					int temp = Integer::parseInt( parameters->param->pop() );
-						
-					if( strcmp(parameters->param->getName(),"s\0") == 0 ) {
-						
-						if( temp > 0 ) {
-							size = (unsigned int) temp;
-						} else {
-							return INVALID_VALUE;
-						}
-						
-					} else if( strcmp(parameters->param->getName(),"t\0") == 0 ) {
-						
-						//Verifica se o tipo do arquivo é valido.
-						if( temp > 0 && temp < File::RESERVED ) {
-							type = (File::tSubNodeType) temp;
-						} else {
-							return INVALID_VALUE;
-						}
-						
-					} else 
-						return INVALID_PARAMETER;
+				if( strcmp(parameters->param->getName(),"s\0") == 0 ) {
+					
+					if( temp > 0 ) {
+						size = (unsigned int) temp;
+					} else {
+						return INVALID_VALUE;
+					}
+					
+				} else if( strcmp(parameters->param->getName(),"t\0") == 0 ) {
+					
+					//Verifica se o tipo do arquivo é valido.
+					if( temp > 0 && temp < File::RESERVED ) {
+						type = (File::tSubNodeType) temp;
+					} else {
+						return INVALID_VALUE;
+					}
+					
 				} else 
-					return INVALID_VALUE;
-			}
+					return INVALID_PARAMETER;
+			} else 
+				return INVALID_VALUE;
 
 			parameters = parameters->next;
 		}
