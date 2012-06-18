@@ -33,14 +33,18 @@ def usage():
   print "\nArgumentos:",
   print """
   -h --help         mostra esta ajuda e finaliza
-     --vbox         inicia o VirtualBox após a compilação com sucesso
-     --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
+  -v --vbox         inicia o VirtualBox após a compilação com sucesso
+  -n --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
                       o padrão é "NeutrinoOS". Essa opção só tem valor quando
                       usada em conjunto com --vbox"""
 
 # Parse das opções de linha de comando
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "h", ["help", "vbox", "vmname="])
+    opts, args = getopt.getopt(sys.argv[1:],
+            # opções curtas
+            "hvn:",
+            # opções longas
+            ["help", "vbox", "vmname="])
 except getopt.GetoptError, err:
     print err
     usage()
@@ -49,9 +53,9 @@ except getopt.GetoptError, err:
 start_vbox = False
 vmname = None
 for option, arg in opts:
-    if option == "--vbox":
+    if option in ("-v", "--vbox"):
         start_vbox = True
-    elif option == "--vmname":
+    elif option in ("-n", "--vmname"):
         vmname = arg
     elif option in ("-h", "--help"):
         usage()
