@@ -70,10 +70,10 @@ def right_sep(arg):
     return arg.replace("/", os.sep)
 
 def execute(command, to_exit=True):
-    variaveis = globals()
-    variaveis.update(locals())
+    variables = globals()
+    variables.update(locals())
 
-    if os.system(right_sep(command).format(**variaveis)) != 0 and to_exit:
+    if os.system(right_sep(command).format(**variables)) != 0 and to_exit:
         sys.exit(1)
 
 def clear():
