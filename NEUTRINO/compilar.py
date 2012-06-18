@@ -32,19 +32,20 @@ def usage():
   print "Script de compilação do Neutrino OS"
   print "\nArgumentos:",
   print """
-  -h --help         mostra esta ajuda e finaliza
+  -m --mode         modo de operação para ser compilado o Kernel Neutrino
   -v --vbox         inicia o VirtualBox após a compilação com sucesso
   -n --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
                       o padrão é "NeutrinoOS". Essa opção só tem valor quando
-                      usada em conjunto com --vbox"""
+                      usada em conjunto com --vbox
+  -h --help         mostra esta ajuda e finaliza"""
 
 # Parse das opções de linha de comando
 try:
     opts, args = getopt.getopt(sys.argv[1:],
             # opções curtas
-            "hvn:",
+            "hvn:m:",
             # opções longas
-            ["help", "vbox", "vmname="])
+            ["help", "vbox", "vmname=", "mode="])
 except getopt.GetoptError, err:
     print err
     usage()
@@ -52,11 +53,14 @@ except getopt.GetoptError, err:
 
 start_vbox = False
 vmname = None
+operation_mode = "GRAPHICS"
 for option, arg in opts:
     if option in ("-v", "--vbox"):
         start_vbox = True
     elif option in ("-n", "--vmname"):
         vmname = arg
+    elif option in ("-m", "--mode"):
+        operation_mode = arg.upper()
     elif option in ("-h", "--help"):
         usage()
         sys.exit(0)
@@ -121,7 +125,7 @@ for app_dir in os.listdir("APPS"):
 print
 
 print "3. Compilando kernel"
-execute("nasm -f bin KERNEL/KERNEL.ASM -dOPERATION_MODE=GRAPHICS_MODE -o BIN/KERNEL.BIN")
+execute("nasm -f bin KERNEL/KERNEL.ASM -dOPERATION_MODE=%s_MODE -o BIN/KERNEL.BIN" % operation_mode)
 execute("nasm -f bin KERNEL/LOADER.ASM -o BIN/LOADER.BIN")
 
 # Remove todos os arquivos ISO existentes
