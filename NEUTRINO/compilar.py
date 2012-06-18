@@ -65,11 +65,11 @@ for option, arg in opts:
 def right_sep(arg):
     return arg.replace("/", os.sep)
 
-def execute(command):
+def execute(command, to_exit=True):
     variaveis = globals()
     variaveis.update(locals())
 
-    if os.system(right_sep(command).format(**variaveis)) != 0:
+    if os.system(right_sep(command).format(**variaveis)) != 0 and to_exit:
         sys.exit(1)
 
 def clear():
@@ -145,6 +145,6 @@ rm("BIN/*.O")
 # Inicia a máquina virtual
 if start_vbox:
     vmname = vmname or "NeutrinoOS"
-    execute("virtualbox --startvm " + vmname)
+    execute("virtualbox --startvm " + vmname, to_exit=False)
 
 print "7. Fim"
