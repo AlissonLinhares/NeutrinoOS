@@ -68,6 +68,12 @@ def execute(command):
     if os.system(right_sep(command).format(**variaveis)) != 0:
         sys.exit(1)
 
+def clear():
+    if os.name == "nt":
+        execute("cls")
+    elif os.name == "posix":
+        execute("clear")
+
 def rm(arg):
     # Remove arquivos por padrão. Ex: *.txt
     for file_node in glob.glob(right_sep(arg)):
@@ -87,8 +93,8 @@ if DIR != "":
 if not os.path.exists("BIN"):
     os.mkdir("BIN")
 
-execute("clear");
-  
+clear()
+
 print "1. Compilando dependencias"
 print " 1.1. Imagens"
 execute("nasm -f bin KERNEL/GUI/NIFS.ASM -o BIN/NIF.BIN")
