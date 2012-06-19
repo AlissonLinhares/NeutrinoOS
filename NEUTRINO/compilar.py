@@ -33,6 +33,7 @@ def usage():
   print "\nArgumentos:",
   print """
   -m --mode         modo de operação para ser compilado o Kernel Neutrino
+  -d --debug        aciona o modo debug. É o mesmo que --mode debug
   -v --vbox         inicia o VirtualBox após a compilação com sucesso
   -n --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
                       o padrão é "NeutrinoOS". Essa opção só tem valor quando
@@ -43,9 +44,9 @@ def usage():
 try:
     opts, args = getopt.getopt(sys.argv[1:],
             # opções curtas
-            "hvn:m:",
+            "hvn:m:d",
             # opções longas
-            ["help", "vbox", "vmname=", "mode="])
+            ["help", "vbox", "vmname=", "mode=", "debug"])
 except getopt.GetoptError, err:
     print err
     usage()
@@ -59,6 +60,8 @@ for option, arg in opts:
         start_vbox = True
     elif option in ("-n", "--vmname"):
         vmname = arg
+    elif option in ("-d", "--debug"):
+        operation_mode = "DEBUG"
     elif option in ("-m", "--mode"):
         operation_mode = arg.upper()
     elif option in ("-h", "--help"):
