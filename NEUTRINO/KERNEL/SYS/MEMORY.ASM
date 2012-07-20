@@ -468,7 +468,7 @@ memory_ExtendBlock:
 				;Movendo os dados do processo para o endereço de EDI 
 				CALL memory_MoveCurrentData
 				
-				;Deletando o bloco de páginas anteriormente usado pelo processo			
+				;Deletando o bloco de páginas anteriormente usado pelo processo
 				MOV ECX,DWORD[ESI + BCP_PTR + bcp.memoryUsage]
 				MOV EDI,ESI
 				CALL memory_DeallocatePage

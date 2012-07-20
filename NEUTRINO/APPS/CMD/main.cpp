@@ -80,7 +80,7 @@ int main() {
 	//Criando uma lista ordenada de comandos.
 	Command *com[COMMAND_LIST_SIZE] = { new Clear(cmd), new Color(cmd), new Exit(cmd), new Help(cmd,com,COMMAND_LIST_SIZE), new Kill(cmd),
 					    new Make(cmd), new Reboot(cmd), new Show(cmd), new Start(cmd) };
-    	
+	
 	do {
 		cmd->print('>');
 		cmd->read( buffer ); 

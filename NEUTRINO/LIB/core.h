@@ -25,6 +25,7 @@
 #define VERSION 0.03
 
 #include <syscalls.h>
+//#include <object.h>
 
 /** Tipo definido para os tratadores de evento. */
 typedef void (tListener)(void);

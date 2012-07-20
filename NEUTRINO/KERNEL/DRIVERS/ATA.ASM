@@ -364,12 +364,12 @@ atapi_Execute:
 
 		;Enviando a parte baixa de ATAPI_BLOCK_SIZE "Tamanho do bloco usado nos drives de CD e DVD" para a porta 1X4h 
 		ADD DX,3
-		MOV AL,ATAPI_BLOCK_SIZE & 0FFh ;Pegando os 8 primeiros bits 	
+		MOV AL,ATAPI_BLOCK_SIZE & 0FFh ;Pegando os 8 primeiros bits
 		OUT DX,AL                    
 		
 		;Enviando a parte alta de ATAPI_BLOCK_SIZE para a porta 1X5h
 		INC DX
-		MOV AL,ATAPI_BLOCK_SIZE >> 8 ;Movendo 8bits para esquerda 	  
+		MOV AL,ATAPI_BLOCK_SIZE >> 8 ;Movendo 8bits para esquerda
 		OUT DX,AL
 		
 		;Enviando o modo de operação para a porta 1X7h

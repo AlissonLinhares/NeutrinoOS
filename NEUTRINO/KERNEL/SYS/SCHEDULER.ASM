@@ -395,7 +395,7 @@ scheduler_StartProcess:
 				ADD EDI,STACK_SIZE
 				SUB ECX,(STACK_SIZE + DYNAMIC_MEM_SIZE)/MEMORY_PAGE_SIZE
 				
-				CALL storage_ReadSector
+				CALL storage_ReadPage
 				JC .storageError
 					SUB EDI,STACK_SIZE
 					ADD ECX,(STACK_SIZE + DYNAMIC_MEM_SIZE)/MEMORY_PAGE_SIZE

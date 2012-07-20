@@ -32,7 +32,9 @@ STORAGE_IDE0_SLAVE     EQU 2h
 STORAGE_IDE1_MASTER    EQU 3h             
 STORAGE_IDE1_SLAVE     EQU 4h 
 
-STORAGE_PAGE_SIZE      EQU MEMORY_PAGE_SIZE
+STORAGE_BITS_PER_PAGE  EQU 9
+STORAGE_PAGE_SIZE      EQU 1 << STORAGE_BITS_PER_PAGE
+
 STORAGE_SIGNATURE      EQU 0x89ABCDEF
 STORAGE_NUM_OF_DISKS   EQU 6
 
@@ -117,13 +119,13 @@ storage:
 			storage_XCHGDisk 0,ESI ;Trocando as unidades.
 	%%done:
 
-;
-;	MOV ECX,2
-;	MOV EDX,tStorage_size
-;	MOV EBX,624
+
+;	MOV ECX,1
+;	MOV EDX,0
+;	MOV EBX,1999
 ;	XOR EAX,EAX
 ;JMP .start
-;
+
 ;	.loop:
 ;		print_c BYTE[EDI]
 ;		INC EDI
@@ -134,15 +136,15 @@ storage:
 ;		XOR EAX,EAX
 ;		pause
 ;
-;		CMP EDI,kernel_Buffer + 4096
+;		CMP EDI,kernel_Buffer + 512
 ;		JB .loop
 ;.start:
 ;		print_d EBX
 ;		print_s ":"
-;		ADD EBX,2
+;		ADD EBX,1
 ;
 ;		MOV EDI,kernel_Buffer
-;		CALL storage_ReadSector
+;		CALL storage_ReadPage
 ;	JMP .loop
 %endmacro
 
@@ -284,7 +286,6 @@ storage_Identify:
 		JMP .ata_config
 	.atapi_config:
 		XOR EAX,EAX
-		MOV ECX,(ATAPI_BLOCK_SIZE * 2) / MEMORY_PAGE_SIZE
 		JMP .continue
 	.ata_config:
 		ADD DX,3
@@ -306,8 +307,9 @@ storage_Identify:
 		
 		;Configurando registro de controle do disco
 		MOV EAX,DWORD[kernel_Buffer + 120]
-		MOV ECX,(ATA_BLOCK_SIZE * 2) / MEMORY_PAGE_SIZE
 	.continue:
+		;Alocando um buffer para gerenciar as páginas em disco.
+		MOV ECX,(STORAGE_PAGE_SIZE * 2) / MEMORY_PAGE_SIZE
 		CALL memory_AllocatePage
 		JC .invalidDisk
 			MOV EDX,DWORD[storage.lastStorageIndex]
@@ -317,10 +319,10 @@ storage_Identify:
 			MOV WORD [EDX + storage.diskList + tStorage.id       ],BX
 			ADD DWORD[storage.lastStorageIndex],tStorage_size
 
-			;Carregando o setor de boot para memória
-			MOV ECX,1                ;Total de setores
-			XOR EBX,EBX              ;Setor
-			CALL storage_ReadSector
+			;Carregando o cabeçalho de boot para memória.
+			MOV ECX,1
+			XOR EBX,EBX ;Cabeçalho do sistema de arquivo
+			CALL storage_ReadPage
 	.invalidDisk:
 	
 	POPAD
@@ -360,11 +362,11 @@ storage_DetectAtaConfig:
 	RET
 
 ;--------------------------------------------------------------------------------------------
-;@description: Procedimento para ler setore de um dispositivo de armazenamento secundário.
-;@input: EDX << diskList index, EBX << page, EDI << buffer, ECX << total de setores
+;@description: Procedimento para ler páginas de um dispositivo de armazenamento secundário.
+;@input: EDX << diskList index, EBX << page, EDI << buffer, ECX << total de páginas
 ;@output: -
 ;@author: alisson_linhares@hotmail.com
-storage_ReadSector:
+storage_ReadPage:
 	PUSHAD
 	
 	;Verificando se a unidade é válida.
@@ -389,7 +391,39 @@ storage_ReadSector:
 			JMP .done
 		.patapi:
 			CALL storage_DetectAtaConfig
+                      
+			ADD EBX,108 ;Pulando os dados de alinhamento
+			SHR EBX,2
+			SHR ECX,2 ;Convertendo para páginas de 2048
+			INC ECX   ;
+			SHL ECX,2 ;
+			CALL memory_AllocatePage ;Alocando um novo buffer
+			JC .abort
+
+			PUSHAD
+			SHR ECX,2 ;Dividindo por 4
 			atapi_Read EBX,DX,AH,EDI,ECX
+			POPAD
+
+			MOV EDX,ECX
+			MOV ESI,EDI
+			MOV EAX,EDI
+
+			MOV EDI,DWORD[ESP + STACK_EDI]
+			MOV EBX,DWORD[ESP + STACK_EBX]
+			
+			;Calculando a posição da página no buffer.
+			AND EBX,3 
+			SHL EBX,STORAGE_BITS_PER_PAGE
+			ADD ESI,EBX
+
+			MOV ECX,DWORD[ESP + STACK_ECX]
+			SHL ECX,STORAGE_BITS_PER_PAGE - 2 ;(-2) Serve para dividir por 4, para tornar o MOVSD mais rápido!
+			REP MOVSD
+
+			MOV EDI,EAX
+			MOV ECX,EDX
+			CALL memory_DeallocatePage ;Desalocando o buffer
 			JMP .done
 		.pata:
 			CALL storage_DetectAtaConfig
@@ -405,10 +439,10 @@ storage_ReadSector:
 
 ;--------------------------------------------------------------------------------------------
 ;@description: Procedimento para escrever dados em um dispositivos de armazenamento secundário.
-;@input: EDX << diskList index, EBX << page, EDI << buffer, ECX << total de setores
+;@input: EDX << diskList index, EBX << page, EDI << buffer, ECX << total de páginas
 ;@output: -
 ;@author: alisson_linhares@hotmail.com
-storage_WriteSector:
+storage_WritePage:
 	PUSHAD
 	
 	;Verificando se a unidade é válida.
@@ -449,7 +483,7 @@ storage_WriteSector:
 ;--------------------------------------------------------------------------------------------
 ;@description: Função para desalocar páginas em disco.
 ;@remarks: Não é permitida a desalocação de páginas em unidades de CD e DVD.
-;@input: EDX << tStorage, EBX << setor, ECX << total de páginas
+;@input: EDX << tStorage, EBX << página inicial, ECX << total de páginas
 ;@output: -
 ;@author: alisson_linhares@hotmail.com
 storage_DeallocatePage:
@@ -467,7 +501,7 @@ storage_DeallocatePage:
 
 			;Salvando em EBP o total de páginas.
 			MOV EBP,ECX
-			MOV ECX,1 ;ECX tem a unidade de alocação para storage_WriteSector e storage_ReadSector.
+			MOV ECX,1 ;ECX tem a unidade de alocação para storage_WritePage e storage_ReadPage.
 			
 			;Fazendo EDI apontar para o buffer em memória.
 			ADD EDI,MEMORY_PAGE_SIZE
@@ -478,9 +512,9 @@ storage_DeallocatePage:
 				;Liberando o bloco de páginas
 				MOV DWORD[EDI + tMemoryPage.next],0 
 				MOV DWORD[EDI + tMemoryPage.size],EBP
-				CALL storage_WriteSector
+				CALL storage_WritePage
 				
-				;Salvando o setor de boot no disco
+				;Salvando a página, que contém o cabeçalho de boot, no disco.
 				MOV DWORD[EDI - MEMORY_PAGE_SIZE + tBootSector.pageList],EBX
 				JMP .updateBootSector
 			.findSpace:
@@ -492,20 +526,20 @@ storage_DeallocatePage:
 				;Procurando o local onde deve ser inserido o bloco de páginas
 				.findLoop:
 					MOV EAX,EBX
-					MOV EBX,DWORD[EDI + tMemoryPage.next] ;Move para o próximo setor
+					MOV EBX,DWORD[EDI + tMemoryPage.next] ;Move para a próxima página
 					
-				;Verifica se o setor atual é menor que o setor passado por parâmetro
+				;Verifica se o bloco de páginas atual é menor que o passado por parâmetro
 				.startFindLoop:
 				CMP DWORD[ESP + STACK_EBX],EBX 
 				JB .insertMiddle
-					CALL storage_ReadSector ;Lendo o próximo setor
+					CALL storage_ReadPage ;Lendo a próxima página
 					JC .done
 				CMP DWORD[EDI + tMemoryPage.next],0
 				JA .findLoop
 
 				.insertFront: ;Inserindo bloco de páginas na frente do bloco atual
 					MOV EBX,EAX
-					CALL storage_ReadSector
+					CALL storage_ReadPage
 					
 					ADD EAX,DWORD[EDI + tMemoryPage.size] ;Ponteiro para o final do bloco anterior
 
@@ -516,17 +550,17 @@ storage_DeallocatePage:
 						;O anterior aponta para o início do bloco inserido.
 						MOV EAX,DWORD[ESP + STACK_EBX]
 						MOV DWORD[EDI + tMemoryPage.next],EAX
-						CALL storage_WriteSector ;Salvando o bloco anterior.
+						CALL storage_WritePage ;Salvando o bloco anterior.
 						
 						MOV DWORD[EDI + tMemoryPage.next],0 ;Marcando como última página.
 						MOV DWORD[EDI + tMemoryPage.size],EBP
 						MOV EBX,EAX
-						CALL storage_WriteSector ;Salvando o bloco atual
+						CALL storage_WritePage ;Salvando o bloco atual
 						JMP .updateBootSector
 					.addPages:
 						;Inserindo o total de páginas do bloco e salvando o bloco anterior
 						ADD DWORD[EDI + tMemoryPage.size],EBP
-						CALL storage_WriteSector
+						CALL storage_WritePage
 						JMP .updateBootSector
 				.insertMiddle:
 					MOV ESI,DWORD[ESP + STACK_EBX]
@@ -535,7 +569,7 @@ storage_DeallocatePage:
 					;Verifica se o final do bloco anterior é igual ao início do próximo bloco
 					CMP ESI,EBX 
 					JNE .addNext
-						CALL storage_ReadSector
+						CALL storage_ReadPage
 						ADD DWORD[EDI + tMemoryPage.size],EBP ;Somando as duas páginas
 						JMP .continue
 					.addNext:
@@ -544,7 +578,7 @@ storage_DeallocatePage:
 					.continue:
 					
 					MOV EBX,DWORD[ESP + STACK_EBX]
-					CALL storage_WriteSector
+					CALL storage_WritePage
 					
 					;Verifica se existe algum bloco de páginas abaixo do bloco atual.
 					CMP EBX,DWORD[EDI - MEMORY_PAGE_SIZE + tBootSector.pageList]
@@ -552,7 +586,7 @@ storage_DeallocatePage:
 						MOV EBX,EAX
 						MOV EAX,DWORD[EDI + tMemoryPage.next] ;Salvando em EAX o ponteiro para a próxima página.
 						MOV EBP,DWORD[EDI + tMemoryPage.size] ;Salvando em EBP o total de páginas do bloco. 
-						CALL storage_ReadSector
+						CALL storage_ReadPage
 						
 						MOV ESI,DWORD[EDI + tMemoryPage.size]
 						ADD ESI,EBX
@@ -562,17 +596,17 @@ storage_DeallocatePage:
 						JNE .addPrior
 							ADD DWORD[EDI + tMemoryPage.size],EBP
 							MOV DWORD[EDI + tMemoryPage.next],EAX ;Inserindo o ponteiro para depois desse bloco
-							CALL storage_WriteSector
+							CALL storage_WritePage
 							JMP .updateBootSector
 						.addPrior:
 							MOV EAX,DWORD[ESP + STACK_EBX] 
 							MOV DWORD[EDI + tMemoryPage.next],EAX  ;Ponteiro para página desalocada
-							CALL storage_WriteSector
+							CALL storage_WritePage
 							JMP .updateBootSector
 					.newFirstPage:
 						MOV DWORD[EDI - MEMORY_PAGE_SIZE + tBootSector.pageList],EBX
 	.updateBootSector:
-		;EDI agora aponta para a cópia em memória do primeiro setor da unidade.
+		;EDI agora aponta para a cópia em memória da primeira página da unidade.
 		SUB EDI,MEMORY_PAGE_SIZE
 		
 		;Retirando o total de páginas desalocadas.
@@ -580,7 +614,7 @@ storage_DeallocatePage:
 		SUB DWORD[EDI + tBootSector.usedPages],EAX
 		
 		XOR EBX,EBX
-		CALL storage_WriteSector
+		CALL storage_WritePage
 	.done:
 		;Destravando o semáforo
 		system_SemaphoreUnlock EDX + storage.diskList + tStorage.semaphore
@@ -601,7 +635,7 @@ storage_DeallocatePage:
 ;@description: Função para alocar blocos de páginas em disco.
 ;@remarks: Não é permitida a alocação de páginas em unidades de CD e DVD.
 ;@input: EDX << tStorage, ECX << total de páginas
-;@output: EBX >> setor
+;@output: EBX >> bloco de páginas
 ;@author: alisson_linhares@hotmail.com
 storage_AllocatePage:
 	XOR EBX,EBX ;EBX retorna 0 em caso de erro.
@@ -618,11 +652,11 @@ storage_AllocatePage:
 			
 			MOV EBX,DWORD[EDI + tBootSector.pageList]
 			
-			;EDI é o Ponteiro para o buffer depois do setor de boot.
+			;EDI é o Ponteiro para o buffer depois do cabeçalho de boot.
 			LEA EDI,[EDI + STORAGE_PAGE_SIZE]
 			
 			MOV EBP,ECX ;Salvando em EBP o total de páginas
-			MOV ECX,1   ;Total de páginas lidas e escritas pelas funções storage_ReadSector e storage_WriteSector
+			MOV ECX,1   ;Total de páginas lidas e escritas pelas funções storage_ReadPage e storage_WritePage
 			
 			XOR EAX,EAX
 			JMP .startFindLoop
@@ -633,13 +667,13 @@ storage_AllocatePage:
 			.startFindLoop:
 				TEST EBX,EBX 
 				JZ .pageFaultError
-				CALL storage_ReadSector
+				CALL storage_ReadPage
 				JC .pageFaultError
 			CMP DWORD[EDI + tMemoryPage.size],EBP
 			JB .findLoop
 			
 			.spaceFound:
-				;Retornando o setor encontrado.
+				;Retornando o bloco de páginas encontrado.
 				MOV DWORD[ESP + STACK_EBX],EBX 
 				
 				;Verifica se o bloco de páginas é maior que a necessidade de alocação.
@@ -651,7 +685,7 @@ storage_AllocatePage:
 					;Alocando parte das páginas.
 					SUB DWORD[EDI + tMemoryPage.size],EBP
 					ADD EBX,EBP
-					CALL storage_WriteSector ;Salvando nova página em disco.
+					CALL storage_WritePage ;Salvando nova página em disco.
 				.removeBlock:
 				
 				;Verifica se o bloco removido é o primeiro.
@@ -659,21 +693,21 @@ storage_AllocatePage:
 				JZ .firstBlock ;Remove o bloco atual
 					;Salvando em EBX o ponteiro para o bloco de páginas anterior e em EAX o ponteiro para o próximo bloco. 
 					XCHG EAX,EBX
-					CALL storage_ReadSector ;Carregando o bloco anterior.
+					CALL storage_ReadPage ;Carregando o bloco anterior.
 
 					;O bloco anterior aponta para o depois das páginas removidas.
 					MOV DWORD[EDI + tMemoryPage.next],EAX 
-					CALL storage_WriteSector ;Salvando setor
+					CALL storage_WritePage ;Salvando página em disco
 					JMP .continueRemove
 				.firstBlock:
 					MOV DWORD[EDI - STORAGE_PAGE_SIZE + tBootSector.pageList],EBX
 				.continueRemove:
 				
-				;Atualizando o setor de boot
+				;Atualizando o cabeçalho de boot
 				XOR EBX,EBX
 				SUB EDI,MEMORY_PAGE_SIZE
 				ADD DWORD[EDI + tBootSector.usedPages],EBP ;Total de páginas usadas
-				CALL storage_WriteSector
+				CALL storage_WritePage
 				
 				;Desativando semáforo.
 				system_SemaphoreUnlock EDX + storage.diskList + tStorage.semaphore

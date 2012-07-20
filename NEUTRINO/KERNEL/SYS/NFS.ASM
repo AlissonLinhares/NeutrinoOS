@@ -31,6 +31,7 @@ NFS_SUBNODETYPE_BINARY      EQU 2
 NFS_SUBNODETYPE_LIBRARY     EQU 3
 NFS_SUBNODETYPE_DATA        EQU 4
 NFS_SUBNODETYPE_RESERVED    EQU 5
+NFS_SUBNODETYPE_READONLY    EQU 8
 
 NFS_BOOTSECTOR_SIGNATURE    EQU "NFS!" 
 ;--------------------------------------------------------------------------------------------
@@ -107,15 +108,14 @@ nfs_Find:
 		CMP EDX,DWORD[storage.lastStorageIndex]               
 		JAE .invalidDisk
 
-			;Carregando em EDI o ponteiro para o buffer do disco. O sistema armazena em memória uma cópia do primeiro setor. 
+			;Carregando em EDI o ponteiro para o buffer do disco. O sistema armazena em memória uma cópia do cabeçalho do NFS!. 
 			MOV EDI,DWORD[EDX +  storage.diskList + tStorage.buffer]
 
 			;Verifica se o formato do disco é válido
 			CMP DWORD[EDI + tBootSector.signature],NFS_BOOTSECTOR_SIGNATURE
-			JNE .invalidDisk
-                       
+			JNE .invalidDisk               
 				;Configurando os registradores de retorno.
-				MOV EBX,NFS_ROOT_SECTOR_PTR 
+				MOV EBX,DWORD[EDI + tBootSector.rootNode.dataPtr] 
 				ADD EDI,tBootSector.rootNode
 				
 				ADD ESI,2 ;Retira os caracteres usados na busca pelo disco
@@ -130,7 +130,7 @@ nfs_Find:
 					;Fazendo EBP apontar para o final do buffer do disco.
 					MOV EBP,DWORD[EDX +  storage.diskList + tStorage.buffer]
 					ADD EBP,MEMORY_PAGE_SIZE
-					MOV EAX,NFS_ROOT_SECTOR_PTR + NFS_ROOT_SECTOR_PTR_SIZE
+					LEA EAX,[EBX + NFS_ROOT_SECTOR_PTR_SIZE]
 					
 					.findLoop:
 						XOR ECX,ECX
@@ -200,8 +200,8 @@ nfs_Find:
 
 ;--------------------------------------------------------------------------------------------	
 ;@description: Função projetada para procurar um subnó no disco.
-;@input: ECX << Tamanho do nome,  EDI << nome do nó procurado, EBP << buffer, EBX << setor do nó, EDX << tStorage, EAX << ponteiro para o final do nó
-;@output: EBX >> setor atual, EDI >> posição do subnó  
+;@input: ECX << Tamanho do nome,  EDI << nome do nó procurado, EBP << buffer, EBX << página do nó, EDX << tStorage, EAX << ponteiro para o final do nó
+;@output: EBX >> página atual, EDI >> posição do subnó  
 ;@author: alisson_linhares@hotmail.com
 nfs_FindSubNode:
 	PUSHAD
@@ -243,7 +243,7 @@ nfs_FindSubNode:
 		;Carregando próxima página do disco
 		MOV ECX,1
 		LEA EDI,[EBP - MEMORY_PAGE_SIZE]
-		CALL storage_ReadSector
+		CALL storage_ReadPage
 	JNC .newInteration
 	
 	.notFound:
@@ -271,10 +271,8 @@ nfs_CreateNode:
 		;Salvando o valor que será retornado quando o procedimento terminar.
 		MOV DWORD[ESP + STACK_EBX],EDI
 
-		TEST BYTE[FS:EDI + tFileController.type   ],NFS_SUBNODETYPE_FOLDER
+		TEST BYTE[FS:EDI + tFileController.type],NFS_SUBNODETYPE_FOLDER
 		JZ .invalidPath ;Verifica se retornou um ponteiro para uma pasta
-		CMP DWORD[FS:EDI + tFileController.dataPtr],NFS_ROOT_SECTOR_PTR
-		JE .invalidPath ;O diretório raiz não pode ser modificado
 			MOV EBX,DWORD[FS:EDI + tFileController.dataPtr]
 			MOV EBP,DWORD[FS:BCP_PTR + bcp.base]
 			ADD EBP,EDI
@@ -350,7 +348,7 @@ nfs_CreateNode:
 					CMP EDI,STORAGE_PAGE_SIZE
 					JB .updateParentPage
 						MOV EDI,EBP
-						CALL storage_WriteSector ;Atualizando o nó pai.
+						CALL storage_WritePage ;Atualizando o nó pai.
 						
 						INC EBX
 						
@@ -362,14 +360,14 @@ nfs_CreateNode:
 					.continue:
 
 					;Atualizando o nó pai
-					CALL storage_WriteSector
+					CALL storage_WritePage
 
 					CMP AL,NFS_SUBNODETYPE_FOLDER
 					JNE .done
 						;Marcando o final da pasta
 						MOV DWORD[EDI],0
 						MOV EBX,DWORD[DS:EBP + tFileController.dataPtr]
-						CALL storage_WriteSector ;Salvando novo registro em disco
+						CALL storage_WritePage ;Salvando novo registro em disco
 			JMP .done
 	.inputError:
 		PUSH NFS_INVALID_NAME
@@ -430,7 +428,7 @@ nfs_LoadFile:
 			MOV DWORD[ESP + STACK_EDI],EDI ;Ponteiro para área de memória do processo.
 			
 			;Carregando arquivo para memória.
-			CALL storage_ReadSector
+			CALL storage_ReadPage
 	.loadError:
 
 	POPAD
@@ -453,21 +451,21 @@ nfs_OpenData:
 	JC .openError
 		;EDI contem o ponteiro para a pasta do arquivo em memória. EDI será modificado por memory_Malloc
 		MOV ESI,EDI
-		
+
 		;Alocando um tFileController para o processo
 		MOV ECX,tFileController_size
 		CALL memory_Malloc
 		JC .memory_Fault
 			;Salvando na pilha de retorno, o ponteiro para o tFileController
 			MOV DWORD[ESP + STACK_EDI],EDI
-			
+
 			;Configurando o tFileController com os dados recebidos pelo nfs_Find
 			MOV DWORD[FS:EDI + tFileController.currentPage],0
 			MOV DWORD[FS:EDI + tFileController.storage    ],EDX
 			
 			MOV EAX,DWORD[ESI + tSubNode.dataPtr       ]
 			MOV DWORD[FS:EDI + tFileController.dataPtr ],EAX
-			
+
 			MOV EAX,DWORD[ESI + tSubNode.size          ]
 			MOV DWORD[FS:EDI + tFileController.size    ],EAX
 			
@@ -507,7 +505,8 @@ nfs_ReadData:
 				MOV ECX,1 ;Lendo uma página do disco.
 				ADD EBX,DWORD[EDI + tFileController.dataPtr]
 				MOV EDX,DWORD[EDI + tFileController.storage]
-				CALL storage_ReadSector ;Carregando dados no tFileController.buffer.
+
+				CALL storage_ReadPage ;Carregando dados no tFileController.buffer.
 				JC .returnError
 					MOV BYTE[EDI + tFileController.error],NO_ERROR
 					JMP .done
@@ -547,7 +546,7 @@ nfs_WriteData:
 				MOV ECX,1 ;Escrevendo uma página em disco
 				ADD EBX,DWORD[EDI + tFileController.dataPtr]
 				MOV EDX,DWORD[EDI + tFileController.storage]
-				CALL storage_WriteSector ;Salvando página em disco
+				CALL storage_WritePage ;Salvando página em disco
 				JC .returnError
 					MOV BYTE[EDI + tFileController.error],NO_ERROR
 					JMP .done

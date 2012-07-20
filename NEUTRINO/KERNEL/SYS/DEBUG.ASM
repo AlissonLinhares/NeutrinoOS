@@ -352,7 +352,7 @@ OVERFLOW_FLAG               EQU 1 << 11
 	debug_Reg32Info:
 		PUSHAD ;Salvando todos os registradores na pilha.
 		
-		;Imprimindo um cabeçário.
+		;Imprimindo um cabeçalho.
 		MOV DX,WORD[debug.textPos]
 		MOV EDI,debug.reg32Info
 		CALL debug_PrintString

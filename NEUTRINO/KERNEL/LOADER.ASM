@@ -32,14 +32,14 @@
 %ifdef BOOT_FROM
 	%if BOOT_FROM == CD || BOOT_FROM == DVD
 		SECTOR_SIZE EQU 4
-		SECTOR_LBA  EQU (0x12000 / 0x800) + 1
+		SECTOR_LBA  EQU 28
 	%else
 		%if BOOT_FROM != HD
 			%warning "O parâmetro BOOT_FROM retornou um atributo inválido, portanto o sistema usará a formatação padrão. Para mais informações, consulte o manual."
 		%endif
 
 		SECTOR_SIZE EQU 1
-		SECTOR_LBA  EQU 1
+		SECTOR_LBA  EQU 4
 	%endif
 %else
 	SECTOR_SIZE EQU 1
@@ -47,9 +47,9 @@
 %endif
 
 ;Constantes locais.
-USED_PAGES EQU 2800/SECTOR_SIZE
-LIST_OF_PAGES_PTR EQU 2800/SECTOR_SIZE 
-ROOT_NODE_PTR EQU 2000/SECTOR_SIZE
+USED_PAGES EQU 2800
+LIST_OF_PAGES_PTR EQU 2800 
+ROOT_NODE_PTR EQU 2000
 NUMBER_OF_BLOCKS EQU 59/SECTOR_SIZE
 
 ;--------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ tBootSector.usedPages        DD USED_PAGES            ;Total de páginas usadas p
 tBootSector.listOfPagesPtr   DD LIST_OF_PAGES_PTR     ;Ponteiro para o bloco de páginas livres.
 tBootSector.rootNode.dataPtr DD ROOT_NODE_PTR         ;Ponteiro para o nó raiz.
 tBootSector.rootNode.size    DD 1                     ;Configurando o nó raiz para trabalhar com 512 bytes.
-tBootSector.rootNode.type    DB 1                     ;Configurando o nó raiz como pasta.
+tBootSector.rootNode.type    DB 1                     ;Configurando o tipo do nó raiz.
 tBootSector.rootNode.name    DB 'ND0 - NEUTRINO O.S.' ;Configurando o nome da unidade.
                              TIMES 49 - ($-$$) DB 0
 
@@ -119,8 +119,9 @@ tBootSector.lastHeadNumber      DB 16
 tBootSector.lastCylinderNumber  DW 03FCFh
 tBootSector.startingSector      DD 1
 tBootSector.partitionSize       DD 207 * 16 * 63
-tBootSector.reserved            TIMES (SECTOR_SIZE * 512 - 2)-($-$$) DB 0 ;Alinhando dados do kernel.
+tBootSector.reserved            TIMES 510 - ($-$$) DB 0 ;Alinhando dados do kernel.
 tBootSector.bootSignature       DW 0AA55h
+tBootSector.kernelAlignment     TIMES 1536 DB 0 
 
 ;--------------------------------------------------------------------------------------------
 ;------------------------Área reservada para os dados do kernel -----------------------------

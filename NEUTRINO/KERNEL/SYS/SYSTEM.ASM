@@ -148,7 +148,7 @@ system:
 			;Lendo dados da pasta a\boot\0, em caso de erro aborta o procedimento.
 			MOV ECX,1
 			MOV EDI,kernel_Buffer
-			CALL storage_ReadSector ;Lendo uma página do disco.
+			CALL storage_ReadPage ;Lendo uma página do disco.
 			JC %%abort
 			
 			MOV EAX,EDI
@@ -177,7 +177,7 @@ system:
 						SUB ECX,(STACK_SIZE + DYNAMIC_MEM_SIZE)/MEMORY_PAGE_SIZE
 						
 						;Carregando dados para depois da pilha
-						CALL storage_ReadSector
+						CALL storage_ReadPage
 						JC %%storageError
 							SUB EDI,STACK_SIZE
 							ADD ECX,(STACK_SIZE + DYNAMIC_MEM_SIZE)/MEMORY_PAGE_SIZE

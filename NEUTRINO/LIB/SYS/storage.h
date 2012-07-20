@@ -42,7 +42,7 @@ namespace nlib {
 		struct {
 			char type; /**< Formato da unidade [PATA,SATA,PATAPI,SATAPI,SCSI] */ 
 			char channel; /**< Posição da unidade. */ 
-			unsigned int size; /**< Total de setores da unidade. */ 
+			unsigned int size; /**< Total de páginas da unidade. */ 
 		} __attribute__((__packed__)) disk[6]; /**< Array com informações dos discos instalados. */
 	
 		/** Construtor responsável por inicializar o registro de troca. */

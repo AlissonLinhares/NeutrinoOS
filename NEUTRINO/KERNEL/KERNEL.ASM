@@ -81,7 +81,7 @@ kernel_Main:
 ;--------------------------Área reservada para dados do kernel-------------------------------
 kernel_Buffer    TIMES 4096 - bcp_size DB 0
 kernel_Stack     EQU $
-kernel_Alignment TIMES (NFS_ROOT_SECTOR_PTR - 1) * STORAGE_PAGE_SIZE - ($-$$) DB 0
+kernel_Alignment TIMES (NFS_ROOT_SECTOR_PTR - 4) * STORAGE_PAGE_SIZE - ($-$$) DB 0
 
 ;--------------------------------------------------------------------------------------------
 ;-----------------------------Diretório principal do sistema---------------------------------
