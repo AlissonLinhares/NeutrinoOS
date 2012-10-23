@@ -43,7 +43,7 @@
 	%endif
 %else
 	SECTOR_SIZE EQU 1
-	SECTOR_LBA  EQU 1
+	SECTOR_LBA  EQU 4
 %endif
 
 ;Constantes locais.

@@ -234,7 +234,7 @@ namespace nlib {
 		 * @param str - Ponteiro para a string que será comparada.
 		 */
 		inline const char equals( const String &str ) const {
-			return equals( str.toCharArray() );	
+			return equals( str.toCharArray() );
 		}
 		
 		/**
@@ -242,10 +242,7 @@ namespace nlib {
 		 * @param value - Constante booleana.
 		 */
 		inline static const char* valueOf( const bool value ) {
-			if (value)
-				return "true\0";
-			
-			return "false\0";
+			return value ? "true\0" : "false\0";
 		}
 		
 		/** Construtor padrão. Usado para desalocar a memória usada pelo objeto string. */

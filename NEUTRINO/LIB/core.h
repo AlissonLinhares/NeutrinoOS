@@ -22,7 +22,7 @@
 #define CORE_H
 
 #define START_PROG_PTR 4096
-#define VERSION 0.03
+#define VERSION 0.04
 
 #include <syscalls.h>
 //#include <object.h>

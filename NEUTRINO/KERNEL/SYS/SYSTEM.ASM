@@ -214,7 +214,7 @@ system:
 ;@author: alisson_linhares@hotmail.com
 %macro system_PMInstall 0
 	[BITS 16]
-	
+
 	;Mascarando IRQ "Destativando o APIC"
 	MOV AL,255
 	OUT 0A1h,AL             
@@ -230,16 +230,16 @@ system:
 	MOV AL,0DFh                            
 	OUT 60h,AL
 	CALL system_WritePort60
-	
+
 	;2 - Carregando GDT
 	LGDT [PGDT]
-	
+
 	;3 - Carregando IDT
 	LIDT [PIDT]
 
 	;4 - Setando o bit PE para que o sistema possa trabalhar em modo protegido.
 	MOV EAX,CR0
-	OR  EAX,1h
+	OR  EAX,1
 	MOV CR0,EAX
 
 	;Configurando CS para usar a base de endereçamento do kernel.

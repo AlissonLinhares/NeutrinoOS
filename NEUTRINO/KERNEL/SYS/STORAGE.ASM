@@ -118,34 +118,6 @@ storage:
 		JZ %%done
 			storage_XCHGDisk 0,ESI ;Trocando as unidades.
 	%%done:
-
-
-;	MOV ECX,1
-;	MOV EDX,0
-;	MOV EBX,1999
-;	XOR EAX,EAX
-;JMP .start
-
-;	.loop:
-;		print_c BYTE[EDI]
-;		INC EDI
-;		INC EAX
-;		CMP EAX,512
-;		JBE .loop
-;
-;		XOR EAX,EAX
-;		pause
-;
-;		CMP EDI,kernel_Buffer + 512
-;		JB .loop
-;.start:
-;		print_d EBX
-;		print_s ":"
-;		ADD EBX,1
-;
-;		MOV EDI,kernel_Buffer
-;		CALL storage_ReadPage
-;	JMP .loop
 %endmacro
 
 ;--------------------------------------------------------------------------------------------

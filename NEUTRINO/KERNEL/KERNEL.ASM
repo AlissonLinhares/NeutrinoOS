@@ -41,7 +41,7 @@ GRAPHICS_MODE      EQU 0 ;Modo gráfico.
 %endif
 
 ;Controle de versão. A máxima versão suportada é "511.99" = 111111111.1100011b
-KERNEL_VERSION     EQU 3 ;0.03
+KERNEL_VERSION     EQU 4 ;0.04
 
 ;--------------------------------------------------------------------------------------------
 ;------------------------Importando macros, procedimentos e dados----------------------------
@@ -79,7 +79,7 @@ kernel_Main:
 
 ;--------------------------------------------------------------------------------------------
 ;--------------------------Área reservada para dados do kernel-------------------------------
-kernel_Buffer    TIMES 4096 - bcp_size DB 0
+kernel_Buffer    TIMES 4096 DB 0
 kernel_Stack     EQU $
 kernel_Alignment TIMES (NFS_ROOT_SECTOR_PTR - 4) * STORAGE_PAGE_SIZE - ($-$$) DB 0
 

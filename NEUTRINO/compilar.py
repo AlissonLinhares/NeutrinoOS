@@ -27,68 +27,67 @@ import glob
 import os
 import sys
 
+# Funções úteis ao processo de compilação
+def right_sep(arg):
+	return arg.replace("/", os.sep)
+
+def execute(command, to_exit=True):
+	variables = globals()
+	variables.update(locals())
+	
+	if os.system(right_sep(command).format(**variables)) != 0 and to_exit:
+		sys.exit(1)
+
+def clear():
+	if os.name == "nt":
+		execute("cls")
+	elif os.name == "posix":
+		execute("clear")
+
+def rm(arg):
+	# Remove arquivos por padrão. Ex: *.txt
+	for file_node in glob.glob(right_sep(arg)):
+		os.remove(file_node)
+
 def usage():
-  print "Uso: %s [OPÇÃO]..." % sys.argv[0]
-  print "Script de compilação do Neutrino OS"
-  print "\nArgumentos:",
-  print """
-  -m --mode         modo de operação para ser compilado o Kernel Neutrino
-  -d --debug        aciona o modo debug. É o mesmo que --mode debug
-  -v --vbox         inicia o VirtualBox após a compilação com sucesso
-  -n --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox
-                      o padrão é "NeutrinoOS". Essa opção só tem valor quando
-                      usada em conjunto com --vbox
-  -h --help         mostra esta ajuda e finaliza"""
+	print "Uso: %s [OPÇÃO]..." % sys.argv[0]
+	print "Script de compilação do Neutrino OS"
+	print "\nArgumentos:",
+	print """
+	-m --mode         modo de operação para ser compilado o Kernel Neutrino
+	-d --debug        aciona o modo debug. É o mesmo que --mode debug
+	-v --vbox         inicia o VirtualBox após a compilação com sucesso
+	-n --vmname=NOME  informa um nome diferente para a VM ao iniciar o VirtualBox o padrão é "NeutrinoOS". Essa opção só tem valor quando usada em conjunto com --vbox
+	-h --help         mostra esta ajuda e finaliza"""
 
 # Parse das opções de linha de comando
 try:
-    opts, args = getopt.getopt(sys.argv[1:],
-            # opções curtas
-            "hvn:m:d",
-            # opções longas
-            ["help", "vbox", "vmname=", "mode=", "debug"])
+	opts, args = getopt.getopt(sys.argv[1:],
+	# opções curtas
+	"hvn:m:d",
+	# opções longas
+	["help", "vbox", "vmname=", "mode=", "debug"])
+
 except getopt.GetoptError, err:
-    print err
-    usage()
-    sys.exit(2)
+	print err
+	usage()
+	sys.exit(2)
 
 start_vbox = False
 vmname = None
 operation_mode = "GRAPHICS"
 for option, arg in opts:
-    if option in ("-v", "--vbox"):
-        start_vbox = True
-    elif option in ("-n", "--vmname"):
-        vmname = arg
-    elif option in ("-d", "--debug"):
-        operation_mode = "DEBUG"
-    elif option in ("-m", "--mode"):
-        operation_mode = arg.upper()
-    elif option in ("-h", "--help"):
-        usage()
-        sys.exit(0)
-
-# Funções úteis para o processo
-def right_sep(arg):
-    return arg.replace("/", os.sep)
-
-def execute(command, to_exit=True):
-    variables = globals()
-    variables.update(locals())
-
-    if os.system(right_sep(command).format(**variables)) != 0 and to_exit:
-        sys.exit(1)
-
-def clear():
-    if os.name == "nt":
-        execute("cls")
-    elif os.name == "posix":
-        execute("clear")
-
-def rm(arg):
-    # Remove arquivos por padrão. Ex: *.txt
-    for file_node in glob.glob(right_sep(arg)):
-        os.remove(file_node)
+	if option in ("-v", "--vbox"):
+		start_vbox = True
+	elif option in ("-n", "--vmname"):
+		vmname = arg
+	elif option in ("-d", "--debug"):
+		operation_mode = "DEBUG"
+	elif option in ("-m", "--mode"):
+		operation_mode = arg.upper()
+	elif option in ("-h", "--help"):
+		usage()
+		sys.exit(0)
 
 # Parâmetros de compilação
 FLAGS_GCC = "-fno-exceptions -fno-stack-protector -fno-rtti -fpermissive -m32"
@@ -98,12 +97,11 @@ OPTIONS_LD = right_sep("-melf_i386 -T LIB/link.ld BIN/crt0.O")
 # Entra no diretório de compilação
 DIR = os.path.dirname(sys.argv[0])
 if DIR != "":
-    os.chdir(DIR)
+	os.chdir(DIR)
 
 # Se a pasta BIN não existir, cria
 if not os.path.exists("BIN"):
-    os.mkdir("BIN")
-
+	os.mkdir("BIN")
 clear()
 
 print "1. Compilando dependencias"
@@ -116,15 +114,15 @@ execute("nasm -faout LIB/crt0.s -o BIN/crt0.O")
 # Loop sobre todos os diretórios dentro de APPS, compilando quando acha main.cpp
 print "2. Compilando programas"
 for app_dir in os.listdir("APPS"):
-    if os.path.isfile(os.path.join("APPS", app_dir, "main.cpp")):
-        app_name = app_dir
+	if os.path.isfile(os.path.join("APPS", app_dir, "main.cpp")):
+		app_name = app_dir
 
-        execute("g++ {OPTIONS_GCC} -c APPS/{app_dir}/main.cpp {FLAGS_GCC} -o BIN/{app_name}.O")
-        execute("ld {OPTIONS_LD} BIN/{app_name}.O -o BIN/{app_name}.BIN")
-
-        # Progresso
-        sys.stdout.write(".")
-        sys.stdout.flush()
+		execute("g++ {OPTIONS_GCC} -c APPS/{app_dir}/main.cpp {FLAGS_GCC} -o BIN/{app_name}.O")
+		execute("ld {OPTIONS_LD} BIN/{app_name}.O -o BIN/{app_name}.BIN")
+		
+		# Progresso
+		sys.stdout.write(".")
+		sys.stdout.flush()
 print
 
 print "3. Compilando kernel"
@@ -151,7 +149,7 @@ rm("BIN/*.O")
 
 # Inicia a máquina virtual
 if start_vbox:
-    vmname = vmname or "NeutrinoOS"
-    execute("virtualbox --startvm " + vmname, to_exit=False)
+	vmname = vmname or "NeutrinoOS"
+	execute("virtualbox --startvm " + vmname, to_exit=False)
 
 print "7. Fim"
