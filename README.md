@@ -42,7 +42,7 @@ Documentação do kernel neutrino v0.01: <a href="https://github.com/AlissonLinh
 LiveCD da versão 0.04 do nos: <a href="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/LIVE.ISO">LIVE.ISO</a><br>
 Imagem de CD do nos v0.04: <a href="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/CD.ISO">CD.ISO</a><br>
 Imagem de disquete do nos v0.04: <a href="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/FLOPPY.IMG">FLOPPY.IMG</a><br>
-Emulador com o Neutrino OS v0.03 (windows/wine): <a href="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/Qemu.rar">Qeqmu.rar</a><br>
+Emulador com o Neutrino OS v0.03 (windows/wine): <a href="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/Qemu.rar">Qemu.rar</a><br>
 
 ### Website
 link.: https://projetonos.wordpress.com/
