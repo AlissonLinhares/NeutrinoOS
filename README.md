@@ -10,7 +10,7 @@ O projeto neutrino consiste em um agrupamento de conceitos sobre algo pouco expl
 </p>
 
 <p style="text-indent: 2em;" align="justify">
-As abordagens utilizadas na construção do kernel possibilita que programas possam executar serviços diretamente sem o intermédio do núcleo. Além disso,do ponto de vista de desenvolvimento, o núcleo oferece um conjunto abundante de códigos, técnicas de programação, organização etc.
+As abordagens utilizadas na construção do kernel possibilitam que programas possam executar serviços diretamente sem o intermédio do núcleo. Além disso,do ponto de vista de desenvolvimento, o núcleo oferece um conjunto abundante de códigos, técnicas de programação, organização etc.
 </p>
 
 
@@ -19,7 +19,7 @@ O maior benefício trazido por esté projeto é o fato do mesmo ter sido projeta
 </p>
 
 <p style="text-indent: 2em;" align="justify">
-O kernel é distribuído sob a licença GNUv3. Desta forma, programadores poderão alterar e redistribuir de forma gratuita o núcleo, possibilitando a melhoria contínua desse software. As bibliotecas de integração e interfaces são distribuídas sob a licença Lesser GNUv3, permitindo que desenvolvedores proprietários possam fechar o código das suas aplicações caso, assim, decidam.
+O kernel é distribuído sob a licença GPLv3. Desta forma, programadores poderão alterar e redistribuir de forma gratuita o núcleo, possibilitando a melhoria contínua desse software. As bibliotecas de integração e interfaces são distribuídas sob a licença Lesser GPLv3, permitindo que desenvolvedores proprietários possam fechar o código das suas aplicações caso, assim, decidam.
 </p>
 
 ### Compilação
