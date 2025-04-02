@@ -23,11 +23,11 @@ The kernel is distributed under the GPLv3 license. This allows programmers to mo
 
 ### Screenshots
 <p align="center">
-  <img src="https://github.com/AlissonLinhares/NeutrinoOS/NEUTRINO/RES/NeutrinoA.png" width="45%">
-  <img src="https://github.com/AlissonLinhares/NeutrinoOS/NEUTRINO/RES/NeutrinoB.png" width="45%">
+  <img src="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/NeutrinoA.png" width="45%">
+  <img src="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/NeutrinoB.png" width="45%">
   <br>
-  <img src="https://github.com/AlissonLinhares/NeutrinoOS/NEUTRINO/RES/NeutrinoC.png" width="45%">
-  <img src="https://github.com/AlissonLinhares/NeutrinoOS/NEUTRINO/RES/NeutrinoD.png" width="45%">
+  <img src="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/NeutrinoC.png" width="45%">
+  <img src="https://raw.githubusercontent.com/AlissonLinhares/NeutrinoOS/master/NEUTRINO/RES/NeutrinoD.png" width="45%">
 </p>
 
 ### Compilation
